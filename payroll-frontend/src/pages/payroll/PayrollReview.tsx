@@ -7,6 +7,7 @@ import {
   Button,
   Chip,
   CircularProgress,
+  IconButton,
   MenuItem,
   Paper,
   Stack,
@@ -17,12 +18,16 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import CalculateIcon from '@mui/icons-material/Calculate';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import DownloadIcon from '@mui/icons-material/Download';
 import { payrollPeriodService } from '@/services/config.service';
 import { payrollService } from '@/services/payroll.service';
+import { reportService } from '@/services/report.service';
 import { useAuth } from '@/context/AuthContext';
 import type { PayrollRunSummary } from '@/types/payroll';
 import type { ApiError } from '@/types/api';
@@ -34,6 +39,8 @@ export default function PayrollReview() {
   const queryClient = useQueryClient();
   const canCalculate = hasPermission('payroll.calculate');
   const canApprove = hasPermission('payroll.approve');
+  const canExportPayroll = hasPermission('payroll.export');
+  const canExportReports = hasPermission('report.export');
 
   const [periodId, setPeriodId] = useState<number | ''>('');
   const [summary, setSummary] = useState<PayrollRunSummary | null>(null);
@@ -101,6 +108,22 @@ export default function PayrollReview() {
             ))}
           </TextField>
           <Box sx={{ flexGrow: 1 }} />
+          {canExportPayroll && periodId !== '' && (rows?.length ?? 0) > 0 && (
+            <Button variant="outlined" startIcon={<DownloadIcon />}
+              onClick={() => reportService.payrollExcel(Number(periodId))}>
+              Excel
+            </Button>
+          )}
+          {canExportReports && periodId !== '' && (rows?.length ?? 0) > 0 && (
+            <>
+              <Button variant="outlined" onClick={() => reportService.irppCsv(Number(periodId))}>
+                IRPP CSV
+              </Button>
+              <Button variant="outlined" onClick={() => reportService.cnssCsv(Number(periodId))}>
+                CNSS CSV
+              </Button>
+            </>
+          )}
           {canCalculate && (
             <Button
               variant="contained"
@@ -141,7 +164,7 @@ export default function PayrollReview() {
                   <TableCell align="right">CNSS</TableCell>
                   <TableCell align="right">Net</TableCell>
                   <TableCell>Status</TableCell>
-                  {canApprove && <TableCell align="right">Action</TableCell>}
+                  <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -178,20 +201,23 @@ export default function PayrollReview() {
                         label={r.paymentStatus}
                       />
                     </TableCell>
-                    {canApprove && (
-                      <TableCell align="right">
-                        {r.paymentStatus === 'DRAFT' && (
-                          <Button
-                            size="small"
-                            startIcon={<CheckCircleIcon />}
-                            onClick={() => approve.mutate(r.id)}
-                            disabled={approve.isPending}
-                          >
-                            Approve
-                          </Button>
-                        )}
-                      </TableCell>
-                    )}
+                    <TableCell align="right">
+                      <Tooltip title="Download payslip">
+                        <IconButton size="small" onClick={() => reportService.payslip(r.id)}>
+                          <PictureAsPdfIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      {canApprove && r.paymentStatus === 'DRAFT' && (
+                        <Button
+                          size="small"
+                          startIcon={<CheckCircleIcon />}
+                          onClick={() => approve.mutate(r.id)}
+                          disabled={approve.isPending}
+                        >
+                          Approve
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

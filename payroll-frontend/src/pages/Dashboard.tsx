@@ -92,7 +92,8 @@ export default function Dashboard() {
                 <li>✅ Sprint 4 — Attendance tracking</li>
                 <li>✅ Sprint 5 — Payroll configuration</li>
                 <li>✅ Sprint 6 — Payroll calculation engine</li>
-                <li>Sprint 7 — Reports &amp; payslips</li>
+                <li>✅ Sprint 7 — Reports &amp; payslips</li>
+                <li>Sprint 8 — Dashboards &amp; analytics</li>
               </Typography>
             </CardContent>
           </Card>

@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import DownloadIcon from '@mui/icons-material/Download';
+import { reportService } from '@/services/report.service';
 import {
   Box,
   Button,
@@ -126,11 +128,19 @@ export default function AttendanceCalendar() {
         <Typography variant="h1" sx={{ fontSize: '1.75rem' }}>
           Attendance
         </Typography>
-        {hasPermission('attendance.import') && (
-          <Button component={RouterLink} to="/attendance/import" variant="outlined" startIcon={<UploadFileIcon />}>
-            Import
-          </Button>
-        )}
+        <Stack direction="row" spacing={1}>
+          {hasPermission('report.export') && (
+            <Button variant="outlined" startIcon={<DownloadIcon />}
+              onClick={() => reportService.attendanceExcel(year, month)}>
+              Export month
+            </Button>
+          )}
+          {hasPermission('attendance.import') && (
+            <Button component={RouterLink} to="/attendance/import" variant="outlined" startIcon={<UploadFileIcon />}>
+              Import
+            </Button>
+          )}
+        </Stack>
       </Stack>
 
       <Paper sx={{ p: 2 }}>
