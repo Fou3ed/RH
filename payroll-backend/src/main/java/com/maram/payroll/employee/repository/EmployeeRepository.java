@@ -19,6 +19,21 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     List<Employee> findByEmploymentStatus(String employmentStatus);
 
+    long countByEmploymentStatus(String employmentStatus);
+
+    long countByHireDateBetween(java.time.LocalDate start, java.time.LocalDate end);
+
+    List<Employee> findTop5ByOrderByHireDateDesc();
+
+    /** Headcount grouped by department name, busiest first. Returns [name, count] rows. */
+    @Query("""
+            SELECT e.department.name, COUNT(e)
+            FROM Employee e
+            GROUP BY e.department.name
+            ORDER BY COUNT(e) DESC
+            """)
+    List<Object[]> countByDepartment();
+
     /**
      * Paginated employee search with optional filters. A null filter is ignored,
      * so the same query backs "list all" and any combination of filters.
