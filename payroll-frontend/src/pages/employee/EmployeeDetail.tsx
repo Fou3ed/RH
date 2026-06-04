@@ -15,6 +15,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { employeeService } from '@/services/employee.service';
 import { useAuth } from '@/context/AuthContext';
+import EmployeeDocuments from '@/components/employee/EmployeeDocuments';
 import type { Employee } from '@/types/employee';
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
@@ -105,6 +106,8 @@ export default function EmployeeDetail() {
           <Field label="Bank code" value={emp.bankCode} />
         </Grid>
       </Paper>
+
+      <EmployeeDocuments employeeId={emp.id} />
     </Stack>
   );
 }

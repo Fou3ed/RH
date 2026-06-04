@@ -4,6 +4,8 @@ import com.maram.payroll.common.dto.PageResponse;
 import com.maram.payroll.employee.dto.EmployeeCreateRequest;
 import com.maram.payroll.employee.dto.EmployeeDto;
 import com.maram.payroll.employee.dto.EmployeeUpdateRequest;
+import com.maram.payroll.employee.dto.ImportPreviewResponse;
+import com.maram.payroll.employee.service.EmployeeImportService;
 import com.maram.payroll.employee.service.EmployeeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/employees")
@@ -27,9 +30,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class EmployeeController {
 
     private final EmployeeService employeeService;
+    private final EmployeeImportService importService;
 
-    public EmployeeController(EmployeeService employeeService) {
+    public EmployeeController(EmployeeService employeeService, EmployeeImportService importService) {
         this.employeeService = employeeService;
+        this.importService = importService;
     }
 
     @GetMapping
@@ -71,5 +76,24 @@ public class EmployeeController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         employeeService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/import/preview", consumes = "multipart/form-data")
+    @PreAuthorize("hasAuthority('employee.import')")
+    @Operation(summary = "Validate an .xlsx upload without writing (row-by-row preview)")
+    public ImportPreviewResponse importPreview(@RequestParam("file") MultipartFile file) {
+        return importService.preview(file);
+    }
+
+    @PostMapping(value = "/import", consumes = "multipart/form-data")
+    @PreAuthorize("hasAuthority('employee.import')")
+    @Operation(summary = "Import employees from an .xlsx upload (atomic — rejected if any row is invalid)")
+    public ResponseEntity<?> importCommit(@RequestParam("file") MultipartFile file) {
+        ImportPreviewResponse preview = importService.preview(file);
+        if (preview.invalidRows() > 0) {
+            // Return the per-row errors so the client can show what to fix.
+            return ResponseEntity.badRequest().body(preview);
+        }
+        return ResponseEntity.ok(importService.commit(file));
     }
 }

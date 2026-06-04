@@ -25,6 +25,7 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { departmentService, employeeService } from '@/services/employee.service';
 import { EMPLOYMENT_STATUSES } from '@/types/employee';
 import { useAuth } from '@/context/AuthContext';
@@ -72,6 +73,7 @@ export default function EmployeeList() {
   const canCreate = hasPermission('employee.create');
   const canEdit = hasPermission('employee.edit');
   const canDelete = hasPermission('employee.delete');
+  const canImport = hasPermission('employee.import');
 
   return (
     <Stack spacing={3}>
@@ -79,11 +81,23 @@ export default function EmployeeList() {
         <Typography variant="h1" sx={{ fontSize: '1.75rem' }}>
           Employees
         </Typography>
-        {canCreate && (
-          <Button component={RouterLink} to="/employees/new" variant="contained" startIcon={<AddIcon />}>
-            New employee
-          </Button>
-        )}
+        <Stack direction="row" spacing={1}>
+          {canImport && (
+            <Button
+              component={RouterLink}
+              to="/employees/import"
+              variant="outlined"
+              startIcon={<UploadFileIcon />}
+            >
+              Import
+            </Button>
+          )}
+          {canCreate && (
+            <Button component={RouterLink} to="/employees/new" variant="contained" startIcon={<AddIcon />}>
+              New employee
+            </Button>
+          )}
+        </Stack>
       </Stack>
 
       <Paper sx={{ p: 2 }}>

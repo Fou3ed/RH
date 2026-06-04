@@ -8,6 +8,7 @@ import Unauthorized from '@/pages/Unauthorized';
 import EmployeeList from '@/pages/employee/EmployeeList';
 import EmployeeForm from '@/pages/employee/EmployeeForm';
 import EmployeeDetail from '@/pages/employee/EmployeeDetail';
+import EmployeeImport from '@/pages/employee/EmployeeImport';
 import Departments from '@/pages/configuration/Departments';
 
 /** Authenticated shell: guards access, then renders the matched page in the layout. */
@@ -42,6 +43,14 @@ export default function App() {
           element={
             <ProtectedRoute permission="employee.create">
               <EmployeeForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employees/import"
+          element={
+            <ProtectedRoute permission="employee.import">
+              <EmployeeImport />
             </ProtectedRoute>
           }
         />
