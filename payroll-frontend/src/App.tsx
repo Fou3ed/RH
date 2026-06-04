@@ -12,6 +12,8 @@ import EmployeeImport from '@/pages/employee/EmployeeImport';
 import AttendanceCalendar from '@/pages/attendance/AttendanceCalendar';
 import AttendanceImport from '@/pages/attendance/AttendanceImport';
 import Departments from '@/pages/configuration/Departments';
+import Configuration from '@/pages/configuration/Configuration';
+import PayrollPeriods from '@/pages/configuration/PayrollPeriods';
 
 /** Authenticated shell: guards access, then renders the matched page in the layout. */
 function ProtectedShell() {
@@ -94,6 +96,22 @@ export default function App() {
           element={
             <ProtectedRoute permission="employee.view">
               <Departments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/configuration"
+          element={
+            <ProtectedRoute permission="payroll.view">
+              <Configuration />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payroll-periods"
+          element={
+            <ProtectedRoute permission="payroll.view">
+              <PayrollPeriods />
             </ProtectedRoute>
           }
         />
