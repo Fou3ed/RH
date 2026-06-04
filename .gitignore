@@ -41,3 +41,7 @@ logs/
 
 # ---- Docker volumes (local) ----
 .docker-data/
+
+# Real payroll workbook — contains employee PII, never commit
+docs/*.xlsm
+docs/*.xlsx

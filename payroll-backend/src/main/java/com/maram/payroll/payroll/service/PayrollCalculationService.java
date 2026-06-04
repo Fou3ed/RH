@@ -36,7 +36,9 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The payroll engine. For a period it computes, per active employee:
@@ -126,6 +128,17 @@ public class PayrollCalculationService {
                 .findFirst().map(TaxConfiguration::getTaxRate).orElse(DEFAULT_CNSS_RATE);
         BigDecimal healthRate = taxConfigurationRepository.findByTaxYearAndTaxType(year, "HEALTH").stream()
                 .findFirst().map(TaxConfiguration::getTaxRate).orElse(BigDecimal.ZERO);
+
+        // Annual IRPP inputs: family income abatements + the professional-expenses abatement.
+        Map<String, BigDecimal> familyAbatements = new HashMap<>();
+        taxConfigurationRepository.findByTaxYearAndTaxType(year, "ABATEMENT")
+                .forEach(t -> familyAbatements.put(t.getFamilyStatusCode(), Money.nz(t.getTaxCreditAmount())));
+        TaxConfiguration pro = taxConfigurationRepository.findByTaxYearAndTaxType(year, "ABATEMENT_PRO")
+                .stream().findFirst().orElse(null);
+        BigDecimal proRate = pro != null ? Money.nz(pro.getTaxRate()) : BigDecimal.ZERO;
+        BigDecimal proCap = pro != null ? pro.getTaxCreditAmount() : null;
+        TaxContext tax = new TaxContext(brackets, cnssRate, healthRate, familyAbatements, proRate, proCap);
+
         List<AllowanceConfig> allowanceConfigs = effectiveAllowances(period);
 
         List<Employee> employees = employeeRepository.findByEmploymentStatus("ACTIVE");
@@ -135,7 +148,7 @@ public class PayrollCalculationService {
 
         for (Employee employee : employees) {
             try {
-                Payroll payroll = calculateForEmployee(employee, period, allowanceConfigs, brackets, cnssRate, healthRate);
+                Payroll payroll = calculateForEmployee(employee, period, allowanceConfigs, tax);
                 if (payroll == null) {
                     skipped.add(employee.getEmployeeId() + " (missing base salary or salary scale)");
                     continue;
@@ -161,10 +174,22 @@ public class PayrollCalculationService {
                 Money.round(totalGross), Money.round(totalDeductions), Money.round(totalNet), skipped);
     }
 
+    /** Tax inputs resolved once per period. */
+    private record TaxContext(
+            List<IRPPTaxCalculator.Bracket> brackets,
+            BigDecimal cnssRate,
+            BigDecimal healthRate,
+            Map<String, BigDecimal> familyAbatements,
+            BigDecimal proRate,
+            BigDecimal proCap) {
+    }
+
+    private static final BigDecimal MONTHS = new BigDecimal("12");
+    private static final BigDecimal HUNDRED = new BigDecimal("100");
+
     private Payroll calculateForEmployee(Employee employee, PayrollPeriod period,
                                          List<AllowanceConfig> allowanceConfigs,
-                                         List<IRPPTaxCalculator.Bracket> brackets,
-                                         BigDecimal cnssRate, BigDecimal healthRate) {
+                                         TaxContext tax) {
         BigDecimal configuredBase = employee.getBaseSalary();
         if (configuredBase == null) {
             return null;
@@ -204,10 +229,9 @@ public class PayrollCalculationService {
         BigDecimal gross = Money.round(adjustedSalary.add(totalAllowances));
 
         // Deductions
-        BigDecimal cnss = cnssCalculator.calculate(gross, cnssRate);
-        BigDecimal taxableBase = gross.subtract(cnss).max(BigDecimal.ZERO);
-        BigDecimal irpp = irppTaxCalculator.calculate(taxableBase, brackets, BigDecimal.ZERO);
-        BigDecimal health = cnssCalculator.calculate(gross, healthRate); // same "rate × gross" shape
+        BigDecimal cnss = cnssCalculator.calculate(gross, tax.cnssRate());
+        BigDecimal irpp = monthlyIrpp(gross, cnss, employee.getFamilyStatus(), tax);
+        BigDecimal health = cnssCalculator.calculate(gross, tax.healthRate()); // same "rate × gross" shape
         BigDecimal totalDeductions = Money.round(irpp.add(cnss).add(health));
 
         BigDecimal net = Money.round(gross.subtract(totalDeductions));
@@ -245,6 +269,34 @@ public class PayrollCalculationService {
             payroll.setCreatedBy(SecurityUtils.getCurrentUsername().orElse("system"));
         }
         return payroll;
+    }
+
+    /**
+     * Monthly IRPP via the Tunisian annual method:
+     * <pre>
+     * annualNetTaxable = (gross − cnss)·12 − professionalAbatement − familyAbatement
+     * annualTax        = progressive barème(annualNetTaxable)
+     * monthlyIrpp      = annualTax / 12
+     * </pre>
+     * where professionalAbatement = min(10%·(gross−cnss)·12, cap).
+     */
+    private BigDecimal monthlyIrpp(BigDecimal gross, BigDecimal cnss, String familyStatus, TaxContext tax) {
+        BigDecimal annualBase = gross.subtract(cnss).max(BigDecimal.ZERO).multiply(MONTHS); // (gross − cnss) × 12
+
+        BigDecimal proAbatement = BigDecimal.ZERO;
+        if (tax.proRate() != null && tax.proRate().signum() > 0) {
+            proAbatement = Money.round(annualBase.multiply(tax.proRate()).divide(HUNDRED, RoundingMode.HALF_UP));
+            if (tax.proCap() != null) {
+                proAbatement = proAbatement.min(tax.proCap());
+            }
+        }
+
+        String code = familyStatus != null ? familyStatus : "C";
+        BigDecimal familyAbatement = tax.familyAbatements().getOrDefault(code, BigDecimal.ZERO);
+
+        BigDecimal annualNetTaxable = annualBase.subtract(proAbatement).subtract(familyAbatement).max(BigDecimal.ZERO);
+        BigDecimal annualTax = irppTaxCalculator.calculate(annualNetTaxable, tax.brackets(), BigDecimal.ZERO);
+        return Money.round(annualTax.divide(MONTHS, Money.RATIO_SCALE, RoundingMode.HALF_UP));
     }
 
     /** Days worked for the period: present(1) + half-day(0.5) + paid leave/holiday(1), capped at working days. */

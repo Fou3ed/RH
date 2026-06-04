@@ -89,6 +89,24 @@ class CalculatorTest {
     }
 
     @Test
+    void irppRealTunisianAnnualBareme() {
+        IRPPTaxCalculator calc = new IRPPTaxCalculator();
+        // Real annual barème from the MARAM workbook (MATRICE IMPOT).
+        List<IRPPTaxCalculator.Bracket> annual = List.of(
+                new IRPPTaxCalculator.Bracket(bd("0"), bd("1500"), bd("0")),
+                new IRPPTaxCalculator.Bracket(bd("1500"), bd("5000"), bd("15")),
+                new IRPPTaxCalculator.Bracket(bd("5000"), bd("10000"), bd("20")),
+                new IRPPTaxCalculator.Bracket(bd("10000"), bd("20000"), bd("25")),
+                new IRPPTaxCalculator.Bracket(bd("20000"), bd("50000"), bd("30")),
+                new IRPPTaxCalculator.Bracket(bd("50000"), null, bd("35")));
+
+        // 6000 = 3500·15% + 1000·20% = 525 + 200 = 725
+        assertThat(calc.calculate(bd("6000"), annual, BigDecimal.ZERO)).isEqualByComparingTo("725.00");
+        // 24913.96 = 525 + 1000 + 2500 + (4913.96·30%) = 5499.19
+        assertThat(calc.calculate(bd("24913.96"), annual, BigDecimal.ZERO)).isEqualByComparingTo("5499.19");
+    }
+
+    @Test
     void irppTaxCreditIsSubtractedAndFlooredAtZero() {
         IRPPTaxCalculator calc = new IRPPTaxCalculator();
         List<IRPPTaxCalculator.Bracket> brackets = List.of(

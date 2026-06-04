@@ -26,14 +26,21 @@ import static org.assertj.core.api.Assertions.assertThat;
  * expected value (full attendance, seeded 2026 tax + allowance config).
  *
  * <pre>
- * base       = 560 × 4.000                       = 2240.00
- * adjusted   = 2240 × (26/26)                     = 2240.00
- * allowances = 9.04 + 87.17 + 16.01 + 22.50 + 10.00 (2 children) = 144.72
- * gross      = 2240.00 + 144.72                   = 2384.72
- * cnss       = 2384.72 × 5.95%                     = 141.89
- * irpp       = (2242.83 − 2000) × 10%             = 24.28   (taxable = gross − cnss)
- * deductions = 24.28 + 141.89                      = 166.17
- * net        = 2384.72 − 166.17                    = 2218.55
+ * base        = 560 × 4.000                        = 2240.00
+ * adjusted    = 2240 × (26/26)                      = 2240.00
+ * allowances  = 9.04 + 87.17 + 16.01 + 22.50 + 10.00 (2 children) = 144.72
+ * gross       = 2240.00 + 144.72                    = 2384.72
+ * cnss        = 2384.72 × 5.95%                      = 141.89
+ *
+ * IRPP (real Tunisian annual barème, employee is family status C):
+ *   annualBase   = (2384.72 − 141.89) × 12          = 26913.96
+ *   proAbatement = min(10% × 26913.96, 2000)        = 2000.00
+ *   netTaxable   = 26913.96 − 2000                   = 24913.96
+ *   annualTax    = 525 + 1000 + 2500 + (4913.96×30%) = 5499.19
+ *   monthlyIrpp  = 5499.19 / 12                       = 458.27
+ *
+ * deductions  = 458.27 + 141.89                      = 600.16
+ * net         = 2384.72 − 600.16                     = 1784.56
  * </pre>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -97,7 +104,7 @@ class PayrollEngineIntegrationTest {
         // Exactly one employee in this DB has a scale for échelon 3 → one row, net 2218.55.
         // (skippedCount is not asserted: other test fixtures may add scale-less employees.)
         assertThat(summary.get("calculated").asInt()).isEqualTo(1);
-        assertThat(summary.get("totalNet").asDouble()).isEqualTo(2218.55);
+        assertThat(summary.get("totalNet").asDouble()).isEqualTo(1784.56);
 
         // Inspect the calculated row.
         JsonNode rows = rest.exchange("/payroll?periodId=" + periodId, HttpMethod.GET,
@@ -109,9 +116,9 @@ class PayrollEngineIntegrationTest {
         assertThat(row.get("totalAllowances").asDouble()).isEqualTo(144.72);
         assertThat(row.get("grossSalary").asDouble()).isEqualTo(2384.72);
         assertThat(row.get("cnssContribution").asDouble()).isEqualTo(141.89);
-        assertThat(row.get("incomeTaxIrpp").asDouble()).isEqualTo(24.28);
-        assertThat(row.get("totalDeductions").asDouble()).isEqualTo(166.17);
-        assertThat(row.get("netSalary").asDouble()).isEqualTo(2218.55);
+        assertThat(row.get("incomeTaxIrpp").asDouble()).isEqualTo(458.27);
+        assertThat(row.get("totalDeductions").asDouble()).isEqualTo(600.16);
+        assertThat(row.get("netSalary").asDouble()).isEqualTo(1784.56);
         assertThat(row.get("paymentStatus").asText()).isEqualTo("DRAFT");
 
         // Approve the row.
