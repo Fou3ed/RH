@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -31,31 +30,37 @@ public class AuthService {
     private final JwtTokenProvider tokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
+    private final LoginAttemptService loginAttemptService;
     private final long refreshExpirationMs;
 
     public AuthService(AuthenticationManager authenticationManager,
                        JwtTokenProvider tokenProvider,
                        RefreshTokenRepository refreshTokenRepository,
                        UserRepository userRepository,
+                       LoginAttemptService loginAttemptService,
                        JwtProperties jwtProperties) {
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
         this.refreshTokenRepository = refreshTokenRepository;
         this.userRepository = userRepository;
+        this.loginAttemptService = loginAttemptService;
         this.refreshExpirationMs = jwtProperties.refreshExpirationMs();
     }
 
     @Transactional
     public AuthResponse login(String username, String password) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, password));
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, password));
+        } catch (org.springframework.security.core.AuthenticationException ex) {
+            // Count the failure (and possibly lock) in an independent transaction.
+            loginAttemptService.recordFailure(username);
+            throw ex;
+        }
 
         CustomUserDetails principal = (CustomUserDetails) authentication.getPrincipal();
-
-        userRepository.findById(principal.getId()).ifPresent(u -> {
-            u.setLastLoginAt(LocalDateTime.now());
-            u.setFailedLoginAttempts(0);
-        });
+        loginAttemptService.recordSuccess(principal.getUsername());
 
         String accessToken = tokenProvider.generateAccessToken(principal);
         String refreshToken = createRefreshToken(principal.getId());
