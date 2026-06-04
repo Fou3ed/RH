@@ -18,6 +18,7 @@ import {
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import ApartmentIcon from '@mui/icons-material/Apartment';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import { useAuth } from '@/context/AuthContext';
 
 interface MainLayoutProps {
@@ -36,6 +37,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', to: '/', icon: <DashboardIcon /> },
   { label: 'Employees', to: '/employees', icon: <PeopleIcon />, permission: 'employee.view' },
+  { label: 'Attendance', to: '/attendance', icon: <EventAvailableIcon />, permission: 'attendance.view' },
   { label: 'Departments', to: '/departments', icon: <ApartmentIcon />, permission: 'employee.view' },
 ];
 

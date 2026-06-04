@@ -9,6 +9,8 @@ import EmployeeList from '@/pages/employee/EmployeeList';
 import EmployeeForm from '@/pages/employee/EmployeeForm';
 import EmployeeDetail from '@/pages/employee/EmployeeDetail';
 import EmployeeImport from '@/pages/employee/EmployeeImport';
+import AttendanceCalendar from '@/pages/attendance/AttendanceCalendar';
+import AttendanceImport from '@/pages/attendance/AttendanceImport';
 import Departments from '@/pages/configuration/Departments';
 
 /** Authenticated shell: guards access, then renders the matched page in the layout. */
@@ -70,6 +72,23 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/attendance"
+          element={
+            <ProtectedRoute permission="attendance.view">
+              <AttendanceCalendar />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/attendance/import"
+          element={
+            <ProtectedRoute permission="attendance.import">
+              <AttendanceImport />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/departments"
           element={
