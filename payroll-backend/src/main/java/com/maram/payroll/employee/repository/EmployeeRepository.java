@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     boolean existsByEmployeeId(String employeeId);
@@ -14,6 +16,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     boolean existsByCnssNumber(String cnssNumber);
 
     boolean existsByNationalId(String nationalId);
+
+    List<Employee> findByEmploymentStatus(String employmentStatus);
 
     /**
      * Paginated employee search with optional filters. A null filter is ignored,

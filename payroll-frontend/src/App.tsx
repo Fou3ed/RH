@@ -14,6 +14,7 @@ import AttendanceImport from '@/pages/attendance/AttendanceImport';
 import Departments from '@/pages/configuration/Departments';
 import Configuration from '@/pages/configuration/Configuration';
 import PayrollPeriods from '@/pages/configuration/PayrollPeriods';
+import PayrollReview from '@/pages/payroll/PayrollReview';
 
 /** Authenticated shell: guards access, then renders the matched page in the layout. */
 function ProtectedShell() {
@@ -104,6 +105,14 @@ export default function App() {
           element={
             <ProtectedRoute permission="payroll.view">
               <Configuration />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payroll"
+          element={
+            <ProtectedRoute permission="payroll.view">
+              <PayrollReview />
             </ProtectedRoute>
           }
         />
