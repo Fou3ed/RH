@@ -12,12 +12,14 @@ import {
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import { systemService } from '@/services/system.service';
+import { useAuth } from '@/context/AuthContext';
 
 /**
  * Landing page for the foundation milestone. Verifies end-to-end connectivity
  * between the SPA and the Spring Boot API.
  */
 export default function Dashboard() {
+  const { user } = useAuth();
   const { data, isLoading, isError } = useQuery({
     queryKey: ['system-info'],
     queryFn: systemService.getInfo,
@@ -27,7 +29,7 @@ export default function Dashboard() {
     <Stack spacing={3}>
       <div>
         <Typography variant="h1" gutterBottom>
-          Dashboard
+          Welcome{user ? `, ${user.username}` : ''}
         </Typography>
         <Typography color="text.secondary">
           MARAM Confection Payroll Platform — development environment.
@@ -85,7 +87,7 @@ export default function Dashboard() {
                 Next steps
               </Typography>
               <Typography component="ul" sx={{ pl: 2, m: 0 }} color="text.secondary">
-                <li>Sprint 2 — Authentication &amp; RBAC</li>
+                <li>✅ Sprint 2 — Authentication &amp; RBAC</li>
                 <li>Sprint 3 — Employee management</li>
                 <li>Sprint 4 — Attendance tracking</li>
                 <li>Sprint 6 — Payroll calculation engine</li>
