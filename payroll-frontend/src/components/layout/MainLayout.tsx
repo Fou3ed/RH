@@ -1,47 +1,67 @@
 import { useState, type MouseEvent, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   AppBar,
   Avatar,
   Box,
-  Container,
+  Drawer,
   IconButton,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
   Menu,
   MenuItem,
   Toolbar,
   Typography,
 } from '@mui/material';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import PeopleIcon from '@mui/icons-material/People';
+import ApartmentIcon from '@mui/icons-material/Apartment';
 import { useAuth } from '@/context/AuthContext';
 
 interface MainLayoutProps {
   children: ReactNode;
 }
 
-/** App shell — header with the signed-in user menu + content area. */
+const DRAWER_WIDTH = 220;
+
+interface NavItem {
+  label: string;
+  to: string;
+  icon: ReactNode;
+  permission?: string;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { label: 'Dashboard', to: '/', icon: <DashboardIcon /> },
+  { label: 'Employees', to: '/employees', icon: <PeopleIcon />, permission: 'employee.view' },
+  { label: 'Departments', to: '/departments', icon: <ApartmentIcon />, permission: 'employee.view' },
+];
+
+/** App shell — top bar with user menu + left navigation drawer. */
 export default function MainLayout({ children }: MainLayoutProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
 
-  const openMenu = (e: MouseEvent<HTMLElement>) => setAnchor(e.currentTarget);
-  const closeMenu = () => setAnchor(null);
-
   const handleLogout = async () => {
-    closeMenu();
+    setAnchor(null);
     await logout();
     navigate('/login', { replace: true });
   };
 
   const initials = user?.username?.slice(0, 2).toUpperCase() ?? '?';
+  const visibleNav = NAV_ITEMS.filter((item) => !item.permission || hasPermission(item.permission));
 
   return (
-    <Box sx={{ minHeight: '100vh' }}>
-      <AppBar position="static" elevation={1}>
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      <AppBar position="fixed" elevation={1} sx={{ zIndex: (t) => t.zIndex.drawer + 1 }}>
         <Toolbar>
           <Typography variant="h6" sx={{ fontWeight: 700, flexGrow: 1 }}>
             MARAM&nbsp;·&nbsp;Payroll
           </Typography>
-
           {user && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
@@ -52,19 +72,46 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   {user.roles.join(', ')}
                 </Typography>
               </Box>
-              <IconButton onClick={openMenu} size="small" sx={{ p: 0 }}>
+              <IconButton onClick={(e: MouseEvent<HTMLElement>) => setAnchor(e.currentTarget)} sx={{ p: 0 }}>
                 <Avatar sx={{ width: 36, height: 36, bgcolor: 'secondary.main' }}>{initials}</Avatar>
               </IconButton>
-              <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={closeMenu}>
+              <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
                 <MenuItem onClick={handleLogout}>Sign out</MenuItem>
               </Menu>
             </Box>
           )}
         </Toolbar>
       </AppBar>
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+
+      <Drawer
+        variant="permanent"
+        sx={{
+          width: DRAWER_WIDTH,
+          flexShrink: 0,
+          [`& .MuiDrawer-paper`]: { width: DRAWER_WIDTH, boxSizing: 'border-box' },
+        }}
+      >
+        <Toolbar />
+        <Box sx={{ overflow: 'auto' }}>
+          <List>
+            {visibleNav.map((item) => {
+              const selected =
+                item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to);
+              return (
+                <ListItemButton key={item.to} component={RouterLink} to={item.to} selected={selected}>
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText primary={item.label} />
+                </ListItemButton>
+              );
+            })}
+          </List>
+        </Box>
+      </Drawer>
+
+      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+        <Toolbar />
         {children}
-      </Container>
+      </Box>
     </Box>
   );
 }

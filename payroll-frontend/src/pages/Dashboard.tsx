@@ -88,7 +88,7 @@ export default function Dashboard() {
               </Typography>
               <Typography component="ul" sx={{ pl: 2, m: 0 }} color="text.secondary">
                 <li>✅ Sprint 2 — Authentication &amp; RBAC</li>
-                <li>Sprint 3 — Employee management</li>
+                <li>✅ Sprint 3 — Employee management</li>
                 <li>Sprint 4 — Attendance tracking</li>
                 <li>Sprint 6 — Payroll calculation engine</li>
               </Typography>
