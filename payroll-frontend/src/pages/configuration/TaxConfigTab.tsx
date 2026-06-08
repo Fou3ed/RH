@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Button,
@@ -30,6 +31,7 @@ import type { ApiError } from '@/types/api';
 
 export default function TaxConfigTab() {
   const { hasPermission } = useAuth();
+  const { t } = useTranslation();
   const canManage = hasPermission('config.manage');
   const queryClient = useQueryClient();
 
@@ -56,7 +58,7 @@ export default function TaxConfigTab() {
       invalidate();
       setOpen(false);
     },
-    onError: (err) => setError((err as AxiosError<ApiError>).response?.data?.message ?? 'Save failed.'),
+    onError: (err) => setError((err as AxiosError<ApiError>).response?.data?.message ?? t('taxConfig.saveFailed')),
   });
 
   const remove = useMutation({ mutationFn: (id: number) => taxConfigService.remove(id), onSuccess: invalidate });
@@ -70,12 +72,12 @@ export default function TaxConfigTab() {
   return (
     <Stack spacing={2}>
       <Stack direction="row" spacing={2} alignItems="center">
-        <TextField label="Year" type="number" size="small" value={year}
+        <TextField label={t('common.year')} type="number" size="small" value={year}
           onChange={(e) => setYear(Number(e.target.value))} sx={{ width: 120 }} />
         <span style={{ flexGrow: 1 }} />
         {canManage && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-            Add rule
+            {t('taxConfig.addRule')}
           </Button>
         )}
       </Stack>
@@ -85,31 +87,31 @@ export default function TaxConfigTab() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Type</TableCell>
-                <TableCell>Min income</TableCell>
-                <TableCell>Max income</TableCell>
-                <TableCell>Rate %</TableCell>
-                {canManage && <TableCell align="right">Actions</TableCell>}
+                <TableCell>{t('taxConfig.type')}</TableCell>
+                <TableCell>{t('taxConfig.minIncome')}</TableCell>
+                <TableCell>{t('taxConfig.maxIncome')}</TableCell>
+                <TableCell>{t('taxConfig.ratePct')}</TableCell>
+                {canManage && <TableCell align="right">{t('common.actions')}</TableCell>}
               </TableRow>
             </TableHead>
             <TableBody>
               {rows?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 3, color: 'text.secondary' }}>
-                    No tax configuration for {year}.
+                    {t('taxConfig.none', { year })}
                   </TableCell>
                 </TableRow>
               )}
-              {rows?.map((t) => (
-                <TableRow key={t.id} hover>
-                  <TableCell>{t.taxType}</TableCell>
-                  <TableCell>{t.minTaxableIncome ?? '—'}</TableCell>
-                  <TableCell>{t.maxTaxableIncome ?? '—'}</TableCell>
-                  <TableCell>{t.taxRate ?? '—'}</TableCell>
+              {rows?.map((row) => (
+                <TableRow key={row.id} hover>
+                  <TableCell>{row.taxType}</TableCell>
+                  <TableCell>{row.minTaxableIncome ?? '—'}</TableCell>
+                  <TableCell>{row.maxTaxableIncome ?? '—'}</TableCell>
+                  <TableCell>{row.taxRate ?? '—'}</TableCell>
                   {canManage && (
                     <TableCell align="right">
-                      <Tooltip title="Delete">
-                        <IconButton size="small" color="error" onClick={() => remove.mutate(t.id)}>
+                      <Tooltip title={t('common.delete')}>
+                        <IconButton size="small" color="error" onClick={() => remove.mutate(row.id)}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -123,31 +125,31 @@ export default function TaxConfigTab() {
       </Paper>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>Add tax rule</DialogTitle>
+        <DialogTitle>{t('taxConfig.addTitle')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {error && <Alert severity="error">{error}</Alert>}
-            <TextField select label="Type" value={form.taxType}
+            <TextField select label={t('taxConfig.type')} value={form.taxType}
               onChange={(e) => setForm({ ...form, taxType: e.target.value })} fullWidth>
-              {TAX_TYPES.map((t) => (
-                <MenuItem key={t} value={t}>{t}</MenuItem>
+              {TAX_TYPES.map((type) => (
+                <MenuItem key={type} value={type}>{type}</MenuItem>
               ))}
             </TextField>
-            <TextField label="Year" type="number" value={form.taxYear}
+            <TextField label={t('common.year')} type="number" value={form.taxYear}
               onChange={(e) => setForm({ ...form, taxYear: Number(e.target.value) })} fullWidth />
-            <TextField label="Min taxable income" type="number" value={form.minTaxableIncome}
+            <TextField label={t('taxConfig.minTaxableIncome')} type="number" value={form.minTaxableIncome}
               onChange={(e) => setForm({ ...form, minTaxableIncome: e.target.value })} fullWidth
-              helperText="IRPP brackets only" />
-            <TextField label="Max taxable income" type="number" value={form.maxTaxableIncome}
+              helperText={t('taxConfig.irppOnly')} />
+            <TextField label={t('taxConfig.maxTaxableIncome')} type="number" value={form.maxTaxableIncome}
               onChange={(e) => setForm({ ...form, maxTaxableIncome: e.target.value })} fullWidth />
-            <TextField label="Rate %" type="number" value={form.taxRate}
+            <TextField label={t('taxConfig.ratePct')} type="number" value={form.taxRate}
               onChange={(e) => setForm({ ...form, taxRate: e.target.value })} fullWidth />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
           <Button variant="contained" onClick={() => save.mutate()} disabled={save.isPending}>
-            Save
+            {t('common.save')}
           </Button>
         </DialogActions>
       </Dialog>

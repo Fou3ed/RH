@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Button,
@@ -32,6 +33,7 @@ import type { ApiError } from '@/types/api';
 
 export default function AllowancesTab() {
   const { hasPermission } = useAuth();
+  const { t } = useTranslation();
   const canManage = hasPermission('config.manage');
   const queryClient = useQueryClient();
 
@@ -53,7 +55,7 @@ export default function AllowancesTab() {
       invalidate();
       setOpen(false);
     },
-    onError: (err) => setError((err as AxiosError<ApiError>).response?.data?.message ?? 'Save failed.'),
+    onError: (err) => setError((err as AxiosError<ApiError>).response?.data?.message ?? t('allowances.saveFailed')),
   });
 
   const remove = useMutation({ mutationFn: (id: number) => allowanceConfigService.remove(id), onSuccess: invalidate });
@@ -70,7 +72,7 @@ export default function AllowancesTab() {
         <span style={{ flexGrow: 1 }} />
         {canManage && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-            Add allowance
+            {t('allowances.addAllowance')}
           </Button>
         )}
       </Stack>
@@ -80,11 +82,11 @@ export default function AllowancesTab() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Type</TableCell>
-                <TableCell>Amount (TND)</TableCell>
-                <TableCell>Attendance-adjusted</TableCell>
-                <TableCell>Effective</TableCell>
-                {canManage && <TableCell align="right">Actions</TableCell>}
+                <TableCell>{t('allowances.type')}</TableCell>
+                <TableCell>{t('allowances.amount')}</TableCell>
+                <TableCell>{t('allowances.attendanceAdjusted')}</TableCell>
+                <TableCell>{t('allowances.effective')}</TableCell>
+                {canManage && <TableCell align="right">{t('common.actions')}</TableCell>}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -92,11 +94,11 @@ export default function AllowancesTab() {
                 <TableRow key={a.id} hover>
                   <TableCell>{a.allowanceType}</TableCell>
                   <TableCell>{a.amount}</TableCell>
-                  <TableCell>{a.attendanceAdjusted ? 'Yes' : 'No'}</TableCell>
+                  <TableCell>{a.attendanceAdjusted ? t('common.yes') : t('common.no')}</TableCell>
                   <TableCell>{a.effectiveDate ?? '—'}</TableCell>
                   {canManage && (
                     <TableCell align="right">
-                      <Tooltip title="Delete">
+                      <Tooltip title={t('common.delete')}>
                         <IconButton size="small" color="error" onClick={() => remove.mutate(a.id)}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -111,17 +113,17 @@ export default function AllowancesTab() {
       </Paper>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>Add allowance default</DialogTitle>
+        <DialogTitle>{t('allowances.addTitle')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {error && <Alert severity="error">{error}</Alert>}
-            <TextField select label="Type" value={form.allowanceType}
+            <TextField select label={t('allowances.type')} value={form.allowanceType}
               onChange={(e) => setForm({ ...form, allowanceType: e.target.value })} fullWidth>
-              {ALLOWANCE_TYPES.map((t) => (
-                <MenuItem key={t} value={t}>{t}</MenuItem>
+              {ALLOWANCE_TYPES.map((type) => (
+                <MenuItem key={type} value={type}>{type}</MenuItem>
               ))}
             </TextField>
-            <TextField label="Amount (TND)" type="number" value={form.amount}
+            <TextField label={t('allowances.amount')} type="number" value={form.amount}
               onChange={(e) => setForm({ ...form, amount: e.target.value })}
               inputProps={{ step: 0.001 }} fullWidth />
             <FormControlLabel
@@ -129,14 +131,14 @@ export default function AllowancesTab() {
                 <Checkbox checked={form.attendanceAdjusted}
                   onChange={(e) => setForm({ ...form, attendanceAdjusted: e.target.checked })} />
               }
-              label="Scale by days worked (÷26)"
+              label={t('allowances.scaleByDays')}
             />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
           <Button variant="contained" onClick={() => save.mutate()} disabled={save.isPending || !form.amount}>
-            Save
+            {t('common.save')}
           </Button>
         </DialogActions>
       </Dialog>

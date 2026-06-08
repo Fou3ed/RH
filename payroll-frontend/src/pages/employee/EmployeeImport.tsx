@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Box,
@@ -17,8 +18,8 @@ import {
   Typography,
 } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { importService } from '@/services/import.service';
+import PageHeader from '@/components/common/PageHeader';
 import type { ImportPreview } from '@/types/import';
 
 const EXPECTED_COLUMNS =
@@ -26,6 +27,7 @@ const EXPECTED_COLUMNS =
 
 export default function EmployeeImport() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [busy, setBusy] = useState(false);
@@ -47,7 +49,7 @@ export default function EmployeeImport() {
       setPreview(await importService.preview(file));
     } catch (err) {
       const apiError = err as AxiosError<{ message?: string }>;
-      setError(apiError.response?.data?.message ?? 'Could not read the file.');
+      setError(apiError.response?.data?.message ?? t('employeeImport.readError'));
     } finally {
       setBusy(false);
     }
@@ -66,9 +68,9 @@ export default function EmployeeImport() {
       // 400 returns the preview with per-row errors.
       if (apiError.response?.data?.rows) {
         setPreview(apiError.response.data);
-        setError('Import rejected — fix the highlighted rows and try again.');
+        setError(t('employeeImport.rejected'));
       } else {
-        setError(apiError.response?.data?.message ?? 'Import failed.');
+        setError(apiError.response?.data?.message ?? t('employeeImport.failed'));
       }
     } finally {
       setBusy(false);
@@ -79,18 +81,11 @@ export default function EmployeeImport() {
 
   return (
     <Stack spacing={3}>
-      <Stack direction="row" spacing={2} alignItems="center">
-        <Button component={RouterLink} to="/employees" startIcon={<ArrowBackIcon />} size="small">
-          Back
-        </Button>
-        <Typography variant="h1" sx={{ fontSize: '1.75rem' }}>
-          Import employees
-        </Typography>
-      </Stack>
+      <PageHeader backTo="/employees" title={t('employeeImport.title')} />
 
       <Paper sx={{ p: 3 }}>
         <Typography color="text.secondary" gutterBottom>
-          Upload an <strong>.xlsx</strong> file. The first row must be a header with these columns:
+          {t('employeeImport.intro')}
         </Typography>
         <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 2 }}>
           {EXPECTED_COLUMNS}
@@ -98,7 +93,7 @@ export default function EmployeeImport() {
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
           <Button component="label" variant="outlined" startIcon={<UploadFileIcon />}>
-            {file ? file.name : 'Choose file'}
+            {file ? file.name : t('employeeImport.choose')}
             <input
               type="file"
               hidden
@@ -107,10 +102,10 @@ export default function EmployeeImport() {
             />
           </Button>
           <Button variant="contained" onClick={runPreview} disabled={!file || busy}>
-            Preview
+            {t('employeeImport.preview')}
           </Button>
           <Button variant="contained" color="success" onClick={runImport} disabled={!canImport || busy}>
-            Import {preview ? `(${preview.validRows})` : ''}
+            {t('employeeImport.import')} {preview ? `(${preview.validRows})` : ''}
           </Button>
         </Stack>
       </Paper>
@@ -121,19 +116,19 @@ export default function EmployeeImport() {
       {preview && (
         <Paper>
           <Box sx={{ p: 2, display: 'flex', gap: 2 }}>
-            <Chip label={`Total: ${preview.totalRows}`} />
-            <Chip color="success" label={`Valid: ${preview.validRows}`} />
-            <Chip color={preview.invalidRows ? 'error' : 'default'} label={`Invalid: ${preview.invalidRows}`} />
+            <Chip label={t('employeeImport.total', { count: preview.totalRows })} />
+            <Chip color="success" label={t('employeeImport.valid', { count: preview.validRows })} />
+            <Chip color={preview.invalidRows ? 'error' : 'default'} label={t('employeeImport.invalid', { count: preview.invalidRows })} />
           </Box>
           <TableContainer>
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Row</TableCell>
-                  <TableCell>Employee ID</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Errors</TableCell>
+                  <TableCell>{t('employeeImport.colRow')}</TableCell>
+                  <TableCell>{t('employeeImport.colId')}</TableCell>
+                  <TableCell>{t('employeeImport.colName')}</TableCell>
+                  <TableCell>{t('employeeImport.colStatus')}</TableCell>
+                  <TableCell>{t('employeeImport.colErrors')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -143,7 +138,7 @@ export default function EmployeeImport() {
                     <TableCell>{row.employeeId ?? '—'}</TableCell>
                     <TableCell>{row.fullName ?? '—'}</TableCell>
                     <TableCell>
-                      <Chip size="small" color={row.valid ? 'success' : 'error'} label={row.valid ? 'OK' : 'Error'} />
+                      <Chip size="small" color={row.valid ? 'success' : 'error'} label={row.valid ? t('employeeImport.ok') : t('employeeImport.error')} />
                     </TableCell>
                     <TableCell>
                       {row.errors.length === 0 ? '—' : row.errors.join('; ')}

@@ -1,6 +1,9 @@
 :root {
-  font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 * {
@@ -16,5 +19,5 @@ body,
 }
 
 body {
-  background-color: #f4f6f8;
+  background-color: #f1f5f9;
 }

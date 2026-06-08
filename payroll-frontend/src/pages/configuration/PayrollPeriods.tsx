@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -27,21 +27,21 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { payrollPeriodService } from '@/services/config.service';
-import { NEXT_STATUS, PERIOD_STATUS_COLOR } from '@/types/config';
+import { NEXT_STATUS } from '@/types/config';
 import { useAuth } from '@/context/AuthContext';
+import { useConfirm } from '@/components/common/ConfirmDialog';
+import StatusChip from '@/components/common/StatusChip';
 import type { ApiError } from '@/types/api';
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
 
 export default function PayrollPeriods() {
   const { hasPermission } = useAuth();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const canManage = hasPermission('config.manage') || hasPermission('payroll.calculate');
 
   const now = new Date();
+  const months = t('common.months', { returnObjects: true }) as string[];
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -56,7 +56,7 @@ export default function PayrollPeriods() {
       invalidate();
       setOpen(false);
     },
-    onError: (err) => setError((err as AxiosError<ApiError>).response?.data?.message ?? 'Create failed.'),
+    onError: (err) => setError((err as AxiosError<ApiError>).response?.data?.message ?? t('periods.createFailed')),
   });
 
   const transition = useMutation({
@@ -71,11 +71,11 @@ export default function PayrollPeriods() {
     <Stack spacing={3}>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Typography variant="h1" sx={{ fontSize: '1.75rem' }}>
-          Payroll periods
+          {t('periods.title')}
         </Typography>
         {canManage && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setError(null); setOpen(true); }}>
-            New period
+            {t('periods.newPeriod')}
           </Button>
         )}
       </Stack>
@@ -85,18 +85,18 @@ export default function PayrollPeriods() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Period</TableCell>
-                <TableCell>Dates</TableCell>
-                <TableCell>Working days</TableCell>
-                <TableCell>Status</TableCell>
-                {canManage && <TableCell align="right">Actions</TableCell>}
+                <TableCell>{t('periods.period')}</TableCell>
+                <TableCell>{t('periods.dates')}</TableCell>
+                <TableCell>{t('periods.workingDays')}</TableCell>
+                <TableCell>{t('common.status')}</TableCell>
+                {canManage && <TableCell align="right">{t('common.actions')}</TableCell>}
               </TableRow>
             </TableHead>
             <TableBody>
               {periods?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                    No payroll periods yet.
+                    {t('periods.none')}
                   </TableCell>
                 </TableRow>
               )}
@@ -108,12 +108,12 @@ export default function PayrollPeriods() {
                     <TableCell>{p.startDate} → {p.endDate}</TableCell>
                     <TableCell>{p.workingDays}</TableCell>
                     <TableCell>
-                      <Chip size="small" color={PERIOD_STATUS_COLOR[p.status]} label={p.status} />
+                      <StatusChip status={p.status} />
                     </TableCell>
                     {canManage && (
                       <TableCell align="right">
                         {next && (
-                          <Tooltip title={`Advance to ${next}`}>
+                          <Tooltip title={t('periods.advanceTo', { status: t(`status.${next}`, { defaultValue: next }) })}>
                             <IconButton size="small" color="primary"
                               onClick={() => transition.mutate({ id: p.id, status: next })}>
                               <ArrowForwardIcon fontSize="small" />
@@ -121,9 +121,18 @@ export default function PayrollPeriods() {
                           </Tooltip>
                         )}
                         {p.status === 'DRAFT' && (
-                          <Tooltip title="Delete">
+                          <Tooltip title={t('common.delete')}>
                             <IconButton size="small" color="error"
-                              onClick={() => { if (window.confirm(`Delete ${p.periodCode}?`)) remove.mutate(p.id); }}>
+                              onClick={async () => {
+                                if (
+                                  await confirm({
+                                    title: t('periods.deleteTitle'),
+                                    message: t('periods.deleteConfirm', { code: p.periodCode }),
+                                    destructive: true,
+                                  })
+                                )
+                                  remove.mutate(p.id);
+                              }}>
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -139,22 +148,22 @@ export default function PayrollPeriods() {
       </Paper>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>New payroll period</DialogTitle>
+        <DialogTitle>{t('periods.newPeriod')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {error && <Alert severity="error">{error}</Alert>}
-            <TextField select label="Month" value={month} onChange={(e) => setMonth(Number(e.target.value))} fullWidth>
-              {MONTHS.map((m, i) => (
+            <TextField select label={t('periods.month')} value={month} onChange={(e) => setMonth(Number(e.target.value))} fullWidth>
+              {months.map((m, i) => (
                 <MenuItem key={m} value={i + 1}>{m}</MenuItem>
               ))}
             </TextField>
-            <TextField label="Year" type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} fullWidth />
+            <TextField label={t('periods.year')} type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} fullWidth />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
           <Button variant="contained" onClick={() => create.mutate()} disabled={create.isPending}>
-            Create
+            {t('common.create')}
           </Button>
         </DialogActions>
       </Dialog>

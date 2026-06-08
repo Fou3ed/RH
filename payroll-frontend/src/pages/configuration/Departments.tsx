@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Button,
@@ -26,6 +27,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { departmentService } from '@/services/employee.service';
 import { useAuth } from '@/context/AuthContext';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 import type { Department, DepartmentRequest } from '@/types/employee';
 import type { ApiError } from '@/types/api';
 
@@ -33,7 +35,9 @@ const EMPTY: DepartmentRequest = { code: '', name: '', description: '' };
 
 export default function Departments() {
   const { hasPermission } = useAuth();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const canManage = hasPermission('config.manage');
 
   const [open, setOpen] = useState(false);
@@ -57,7 +61,7 @@ export default function Departments() {
     },
     onError: (err) => {
       const apiError = err as AxiosError<ApiError>;
-      setError(apiError.response?.data?.message ?? 'Save failed.');
+      setError(apiError.response?.data?.message ?? t('departments.saveFailed'));
     },
   });
 
@@ -84,11 +88,11 @@ export default function Departments() {
     <Stack spacing={3}>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Typography variant="h1" sx={{ fontSize: '1.75rem' }}>
-          Departments
+          {t('departments.title')}
         </Typography>
         {canManage && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-            New department
+            {t('departments.newDepartment')}
           </Button>
         )}
       </Stack>
@@ -98,18 +102,18 @@ export default function Departments() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Code</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Parent</TableCell>
-                {canManage && <TableCell align="right">Actions</TableCell>}
+                <TableCell>{t('departments.code')}</TableCell>
+                <TableCell>{t('departments.name')}</TableCell>
+                <TableCell>{t('departments.description')}</TableCell>
+                <TableCell>{t('departments.parent')}</TableCell>
+                {canManage && <TableCell align="right">{t('common.actions')}</TableCell>}
               </TableRow>
             </TableHead>
             <TableBody>
               {!isLoading && departments?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                    <Typography color="text.secondary">No departments yet.</Typography>
+                    <Typography color="text.secondary">{t('departments.none')}</Typography>
                   </TableCell>
                 </TableRow>
               )}
@@ -121,17 +125,24 @@ export default function Departments() {
                   <TableCell>{dept.parentName ?? '—'}</TableCell>
                   {canManage && (
                     <TableCell align="right">
-                      <Tooltip title="Edit">
+                      <Tooltip title={t('common.edit')}>
                         <IconButton size="small" onClick={() => openEdit(dept)}>
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Delete">
+                      <Tooltip title={t('common.delete')}>
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => {
-                            if (window.confirm(`Delete ${dept.name}?`)) remove.mutate(dept.id);
+                          onClick={async () => {
+                            if (
+                              await confirm({
+                                title: t('departments.deleteTitle'),
+                                message: t('departments.deleteConfirm', { name: dept.name }),
+                                destructive: true,
+                              })
+                            )
+                              remove.mutate(dept.id);
                           }}
                         >
                           <DeleteIcon fontSize="small" />
@@ -147,26 +158,26 @@ export default function Departments() {
       </Paper>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{editingId ? 'Edit department' : 'New department'}</DialogTitle>
+        <DialogTitle>{editingId ? t('departments.editDepartment') : t('departments.newDepartment')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {error && <Alert severity="error">{error}</Alert>}
             <TextField
-              label="Code"
+              label={t('departments.code')}
               value={form.code}
               onChange={(e) => setForm({ ...form, code: e.target.value })}
               required
               fullWidth
             />
             <TextField
-              label="Name"
+              label={t('departments.name')}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
               fullWidth
             />
             <TextField
-              label="Description"
+              label={t('departments.description')}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               multiline
@@ -176,13 +187,13 @@ export default function Departments() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
           <Button
             variant="contained"
             onClick={() => save.mutate(form)}
             disabled={save.isPending || !form.code || !form.name}
           >
-            Save
+            {t('common.save')}
           </Button>
         </DialogActions>
       </Dialog>

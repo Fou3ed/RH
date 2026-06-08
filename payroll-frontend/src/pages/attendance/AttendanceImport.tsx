@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Box,
@@ -19,18 +20,15 @@ import {
   Typography,
 } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { attendanceService } from '@/services/attendance.service';
+import PageHeader from '@/components/common/PageHeader';
 import type { AttendanceImportPreview } from '@/types/attendance';
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
 
 export default function AttendanceImport() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const now = new Date();
+  const months = t('common.months', { returnObjects: true }) as string[];
   const [file, setFile] = useState<File | null>(null);
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -46,7 +44,7 @@ export default function AttendanceImport() {
     try {
       setPreview(await attendanceService.importPreview(file, year, month));
     } catch (err) {
-      setError((err as AxiosError<{ message?: string }>).response?.data?.message ?? 'Could not read the file.');
+      setError((err as AxiosError<{ message?: string }>).response?.data?.message ?? t('attendanceImport.readError'));
     } finally {
       setBusy(false);
     }
@@ -64,9 +62,9 @@ export default function AttendanceImport() {
       const apiError = err as AxiosError<AttendanceImportPreview & { message?: string }>;
       if (apiError.response?.data?.rows) {
         setPreview(apiError.response.data);
-        setError('Import rejected — fix the highlighted rows and try again.');
+        setError(t('attendanceImport.rejected'));
       } else {
-        setError(apiError.response?.data?.message ?? 'Import failed.');
+        setError(apiError.response?.data?.message ?? t('attendanceImport.failed'));
       }
     } finally {
       setBusy(false);
@@ -77,38 +75,29 @@ export default function AttendanceImport() {
 
   return (
     <Stack spacing={3}>
-      <Stack direction="row" spacing={2} alignItems="center">
-        <Button component={RouterLink} to="/attendance" startIcon={<ArrowBackIcon />} size="small">
-          Back
-        </Button>
-        <Typography variant="h1" sx={{ fontSize: '1.75rem' }}>
-          Import attendance
-        </Typography>
-      </Stack>
+      <PageHeader backTo="/attendance" title={t('attendanceImport.title')} />
 
       <Paper sx={{ p: 3 }}>
         <Typography color="text.secondary" gutterBottom>
-          Upload a monthly <strong>.xlsx</strong> grid: first column <code>employeeId</code>, then one
-          column per day (1, 2, 3…). Cell codes: <code>8</code>=present, <code>4</code>=half-day,{' '}
-          <code>A</code>=absent, <code>C</code>=leave, <code>H</code>=holiday, <code>W</code>=weekend.
+          {t('attendanceImport.intro')}
         </Typography>
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} sx={{ mt: 2 }}>
-          <TextField select label="Month" size="small" value={month}
+          <TextField select label={t('periods.month')} size="small" value={month}
             onChange={(e) => setMonth(Number(e.target.value))} sx={{ minWidth: 140 }}>
-            {MONTHS.map((m, i) => (
+            {months.map((m, i) => (
               <MenuItem key={m} value={i + 1}>{m}</MenuItem>
             ))}
           </TextField>
-          <TextField label="Year" type="number" size="small" value={year}
+          <TextField label={t('common.year')} type="number" size="small" value={year}
             onChange={(e) => setYear(Number(e.target.value))} sx={{ width: 110 }} />
           <Button component="label" variant="outlined" startIcon={<UploadFileIcon />}>
-            {file ? file.name : 'Choose file'}
+            {file ? file.name : t('attendanceImport.choose')}
             <input type="file" hidden accept=".xlsx" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setPreview(null); }} />
           </Button>
-          <Button variant="contained" onClick={runPreview} disabled={!file || busy}>Preview</Button>
+          <Button variant="contained" onClick={runPreview} disabled={!file || busy}>{t('attendanceImport.preview')}</Button>
           <Button variant="contained" color="success" onClick={runImport} disabled={!canImport || busy}>
-            Import {preview ? `(${preview.totalRecords})` : ''}
+            {t('attendanceImport.import')} {preview ? `(${preview.totalRecords})` : ''}
           </Button>
         </Stack>
       </Paper>
@@ -119,20 +108,20 @@ export default function AttendanceImport() {
       {preview && (
         <Paper>
           <Box sx={{ p: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <Chip label={`Rows: ${preview.totalRows}`} />
-            <Chip color="success" label={`Valid: ${preview.validRows}`} />
-            <Chip color={preview.invalidRows ? 'error' : 'default'} label={`Invalid: ${preview.invalidRows}`} />
-            <Chip label={`Records to import: ${preview.totalRecords}`} />
+            <Chip label={t('attendanceImport.rows', { count: preview.totalRows })} />
+            <Chip color="success" label={t('attendanceImport.valid', { count: preview.validRows })} />
+            <Chip color={preview.invalidRows ? 'error' : 'default'} label={t('attendanceImport.invalid', { count: preview.invalidRows })} />
+            <Chip label={t('attendanceImport.records', { count: preview.totalRecords })} />
           </Box>
           <TableContainer>
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Row</TableCell>
-                  <TableCell>Employee ID</TableCell>
-                  <TableCell>Days recognised</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Errors</TableCell>
+                  <TableCell>{t('attendanceImport.colRow')}</TableCell>
+                  <TableCell>{t('attendanceImport.colId')}</TableCell>
+                  <TableCell>{t('attendanceImport.colDays')}</TableCell>
+                  <TableCell>{t('attendanceImport.colStatus')}</TableCell>
+                  <TableCell>{t('attendanceImport.colErrors')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -142,7 +131,7 @@ export default function AttendanceImport() {
                     <TableCell>{row.employeeId}</TableCell>
                     <TableCell>{row.recognizedDays}</TableCell>
                     <TableCell>
-                      <Chip size="small" color={row.valid ? 'success' : 'error'} label={row.valid ? 'OK' : 'Error'} />
+                      <Chip size="small" color={row.valid ? 'success' : 'error'} label={row.valid ? t('attendanceImport.ok') : t('attendanceImport.error')} />
                     </TableCell>
                     <TableCell>{row.errors.length ? row.errors.join('; ') : '—'}</TableCell>
                   </TableRow>

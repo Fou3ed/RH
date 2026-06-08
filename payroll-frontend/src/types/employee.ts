@@ -86,3 +86,13 @@ export interface DepartmentRequest {
 }
 
 export const EMPLOYMENT_STATUSES = ['ACTIVE', 'INACTIVE', 'LEAVE', 'TERMINATED'] as const;
+
+/** Tunisian IRPP family-status codes: C = single, M0–M4 = married with 0–4 dependants. */
+export const FAMILY_STATUSES = [
+  { code: 'C', label: 'C — Single' },
+  { code: 'M0', label: 'M0 — Married, 0 dependants' },
+  { code: 'M1', label: 'M1 — Married, 1 dependant' },
+  { code: 'M2', label: 'M2 — Married, 2 dependants' },
+  { code: 'M3', label: 'M3 — Married, 3 dependants' },
+  { code: 'M4', label: 'M4 — Married, 4 dependants' },
+] as const;

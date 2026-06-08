@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Box,
@@ -25,6 +26,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { documentService } from '@/services/document.service';
 import { DOCUMENT_TYPES, type EmployeeDocument } from '@/types/document';
 import { useAuth } from '@/context/AuthContext';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 
 function formatSize(bytes: number | null): string {
   if (!bytes) return '—';
@@ -35,7 +37,9 @@ function formatSize(bytes: number | null): string {
 
 export default function EmployeeDocuments({ employeeId }: { employeeId: number }) {
   const { hasPermission } = useAuth();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const canManage = hasPermission('employee.edit');
 
   const [file, setFile] = useState<File | null>(null);
@@ -58,7 +62,7 @@ export default function EmployeeDocuments({ employeeId }: { employeeId: number }
     },
     onError: (err) => {
       const apiError = err as AxiosError<{ message?: string }>;
-      setError(apiError.response?.data?.message ?? 'Upload failed.');
+      setError(apiError.response?.data?.message ?? t('employees.documents.uploadFailed'));
     },
   });
 
@@ -68,13 +72,13 @@ export default function EmployeeDocuments({ employeeId }: { employeeId: number }
   });
 
   const handleDownload = (doc: EmployeeDocument) => {
-    documentService.download(doc).catch(() => setError('Download failed.'));
+    documentService.download(doc).catch(() => setError(t('employees.documents.downloadFailed')));
   };
 
   return (
     <Paper sx={{ p: 3 }}>
       <Typography variant="h6" gutterBottom>
-        Documents
+        {t('employees.documents.title')}
       </Typography>
 
       {error && (
@@ -86,7 +90,7 @@ export default function EmployeeDocuments({ employeeId }: { employeeId: number }
       {canManage && (
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }} alignItems={{ sm: 'center' }}>
           <Button component="label" variant="outlined" startIcon={<UploadFileIcon />} size="small">
-            {file ? file.name : 'Choose file'}
+            {file ? file.name : t('employees.documents.chooseFile')}
             <input
               type="file"
               hidden
@@ -96,7 +100,7 @@ export default function EmployeeDocuments({ employeeId }: { employeeId: number }
           </Button>
           <TextField
             select
-            label="Type"
+            label={t('employees.documents.type')}
             size="small"
             value={type}
             onChange={(e) => setType(e.target.value)}
@@ -114,10 +118,10 @@ export default function EmployeeDocuments({ employeeId }: { employeeId: number }
             disabled={!file || upload.isPending}
             onClick={() => upload.mutate()}
           >
-            Upload
+            {t('employees.documents.upload')}
           </Button>
           <Typography variant="caption" color="text.secondary">
-            PDF, JPEG, PNG, DOC, DOCX · max 10MB
+            {t('employees.documents.constraints')}
           </Typography>
         </Stack>
       )}
@@ -126,18 +130,18 @@ export default function EmployeeDocuments({ employeeId }: { employeeId: number }
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>File</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Size</TableCell>
-              <TableCell>Uploaded by</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              <TableCell>{t('employees.documents.file')}</TableCell>
+              <TableCell>{t('employees.documents.type')}</TableCell>
+              <TableCell>{t('employees.documents.size')}</TableCell>
+              <TableCell>{t('employees.documents.uploadedBy')}</TableCell>
+              <TableCell align="right">{t('common.actions')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {documents?.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
-                  <Typography color="text.secondary">No documents.</Typography>
+                  <Typography color="text.secondary">{t('employees.documents.none')}</Typography>
                 </TableCell>
               </TableRow>
             )}
@@ -148,18 +152,25 @@ export default function EmployeeDocuments({ employeeId }: { employeeId: number }
                 <TableCell>{formatSize(doc.fileSize)}</TableCell>
                 <TableCell>{doc.uploadedBy ?? '—'}</TableCell>
                 <TableCell align="right">
-                  <Tooltip title="Download">
+                  <Tooltip title={t('employees.documents.download')}>
                     <IconButton size="small" onClick={() => handleDownload(doc)}>
                       <DownloadIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
                   {canManage && (
-                    <Tooltip title="Delete">
+                    <Tooltip title={t('common.delete')}>
                       <IconButton
                         size="small"
                         color="error"
-                        onClick={() => {
-                          if (window.confirm(`Delete ${doc.fileName}?`)) remove.mutate(doc.id);
+                        onClick={async () => {
+                          if (
+                            await confirm({
+                              title: t('employees.documents.deleteTitle'),
+                              message: t('employees.documents.deleteConfirm', { name: doc.fileName }),
+                              destructive: true,
+                            })
+                          )
+                            remove.mutate(doc.id);
                         }}
                       >
                         <DeleteIcon fontSize="small" />

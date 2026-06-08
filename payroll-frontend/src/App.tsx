@@ -1,27 +1,45 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Outlet } from 'react-router-dom';
+import { Box, CircularProgress } from '@mui/material';
 import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
-import Dashboard from '@/pages/Dashboard';
+
+// Eager: entry screen, shown on first paint.
 import Login from '@/pages/Login';
-import NotFound from '@/pages/NotFound';
-import Unauthorized from '@/pages/Unauthorized';
-import EmployeeList from '@/pages/employee/EmployeeList';
-import EmployeeForm from '@/pages/employee/EmployeeForm';
-import EmployeeDetail from '@/pages/employee/EmployeeDetail';
-import EmployeeImport from '@/pages/employee/EmployeeImport';
-import AttendanceCalendar from '@/pages/attendance/AttendanceCalendar';
-import AttendanceImport from '@/pages/attendance/AttendanceImport';
-import Departments from '@/pages/configuration/Departments';
-import Configuration from '@/pages/configuration/Configuration';
-import PayrollPeriods from '@/pages/configuration/PayrollPeriods';
-import PayrollReview from '@/pages/payroll/PayrollReview';
+
+// Lazy: each page is split into its own chunk and loaded on demand.
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const NotFound = lazy(() => import('@/pages/NotFound'));
+const Unauthorized = lazy(() => import('@/pages/Unauthorized'));
+const EmployeeList = lazy(() => import('@/pages/employee/EmployeeList'));
+const EmployeeForm = lazy(() => import('@/pages/employee/EmployeeForm'));
+const EmployeeDetail = lazy(() => import('@/pages/employee/EmployeeDetail'));
+const EmployeeImport = lazy(() => import('@/pages/employee/EmployeeImport'));
+const AttendanceCalendar = lazy(() => import('@/pages/attendance/AttendanceCalendar'));
+const AttendanceImport = lazy(() => import('@/pages/attendance/AttendanceImport'));
+const Departments = lazy(() => import('@/pages/configuration/Departments'));
+const Configuration = lazy(() => import('@/pages/configuration/Configuration'));
+const PayrollPeriods = lazy(() => import('@/pages/configuration/PayrollPeriods'));
+const PayrollReview = lazy(() => import('@/pages/payroll/PayrollReview'));
+const UserManagement = lazy(() => import('@/pages/admin/UserManagement'));
+
+/** Centered spinner shown while a lazy page chunk loads. */
+function PageFallback() {
+  return (
+    <Box sx={{ display: 'grid', placeItems: 'center', minHeight: '50vh' }}>
+      <CircularProgress />
+    </Box>
+  );
+}
 
 /** Authenticated shell: guards access, then renders the matched page in the layout. */
 function ProtectedShell() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <Outlet />
+        <Suspense fallback={<PageFallback />}>
+          <Outlet />
+        </Suspense>
       </MainLayout>
     </ProtectedRoute>
   );
@@ -121,6 +139,15 @@ export default function App() {
           element={
             <ProtectedRoute permission="payroll.view">
               <PayrollPeriods />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute permission="user.manage">
+              <UserManagement />
             </ProtectedRoute>
           }
         />

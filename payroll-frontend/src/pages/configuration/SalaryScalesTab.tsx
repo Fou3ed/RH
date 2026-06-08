@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Button,
@@ -30,6 +31,7 @@ import type { ApiError } from '@/types/api';
 
 export default function SalaryScalesTab() {
   const { hasPermission } = useAuth();
+  const { t } = useTranslation();
   const canManage = hasPermission('config.manage');
   const queryClient = useQueryClient();
 
@@ -59,7 +61,7 @@ export default function SalaryScalesTab() {
       setOpen(false);
     },
     onError: (err) =>
-      setError((err as AxiosError<ApiError>).response?.data?.message ?? 'Save failed.'),
+      setError((err as AxiosError<ApiError>).response?.data?.message ?? t('salaryScales.saveFailed')),
   });
 
   const remove = useMutation({
@@ -77,7 +79,7 @@ export default function SalaryScalesTab() {
     <Stack spacing={2}>
       <Stack direction="row" spacing={2} alignItems="center">
         <TextField
-          label="Year"
+          label={t('common.year')}
           type="number"
           size="small"
           value={year}
@@ -87,7 +89,7 @@ export default function SalaryScalesTab() {
         <span style={{ flexGrow: 1 }} />
         {canManage && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-            Add scale
+            {t('salaryScales.addScale')}
           </Button>
         )}
       </Stack>
@@ -97,18 +99,18 @@ export default function SalaryScalesTab() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Category</TableCell>
-                <TableCell>Échelon</TableCell>
-                <TableCell>Multiplier</TableCell>
-                <TableCell>Valid from</TableCell>
-                {canManage && <TableCell align="right">Actions</TableCell>}
+                <TableCell>{t('salaryScales.category')}</TableCell>
+                <TableCell>{t('salaryScales.echelon')}</TableCell>
+                <TableCell>{t('salaryScales.multiplier')}</TableCell>
+                <TableCell>{t('salaryScales.validFrom')}</TableCell>
+                {canManage && <TableCell align="right">{t('common.actions')}</TableCell>}
               </TableRow>
             </TableHead>
             <TableBody>
               {scales?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 3, color: 'text.secondary' }}>
-                    No salary scales for {year}.
+                    {t('salaryScales.none', { year })}
                   </TableCell>
                 </TableRow>
               )}
@@ -120,7 +122,7 @@ export default function SalaryScalesTab() {
                   <TableCell>{s.validFrom ?? '—'}</TableCell>
                   {canManage && (
                     <TableCell align="right">
-                      <Tooltip title="Delete">
+                      <Tooltip title={t('common.delete')}>
                         <IconButton size="small" color="error" onClick={() => remove.mutate(s.id)}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -135,31 +137,31 @@ export default function SalaryScalesTab() {
       </Paper>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>Add salary scale</DialogTitle>
+        <DialogTitle>{t('salaryScales.addTitle')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {error && <Alert severity="error">{error}</Alert>}
-            <TextField select label="Category" value={form.categoryId}
+            <TextField select label={t('salaryScales.category')} value={form.categoryId}
               onChange={(e) => setForm({ ...form, categoryId: e.target.value })} fullWidth>
               {categories?.map((c) => (
                 <MenuItem key={c.id} value={c.id}>{c.code}</MenuItem>
               ))}
             </TextField>
-            <TextField label="Échelon" type="number" value={form.echelon}
+            <TextField label={t('salaryScales.echelon')} type="number" value={form.echelon}
               onChange={(e) => setForm({ ...form, echelon: e.target.value })}
               inputProps={{ min: 1, max: 14 }} fullWidth />
-            <TextField label="Year" type="number" value={form.year}
+            <TextField label={t('common.year')} type="number" value={form.year}
               onChange={(e) => setForm({ ...form, year: Number(e.target.value) })} fullWidth />
-            <TextField label="Multiplier" type="number" value={form.salaryMultiplier}
+            <TextField label={t('salaryScales.multiplier')} type="number" value={form.salaryMultiplier}
               onChange={(e) => setForm({ ...form, salaryMultiplier: e.target.value })}
               inputProps={{ step: 0.001 }} fullWidth />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
           <Button variant="contained" onClick={() => save.mutate()}
             disabled={save.isPending || !form.categoryId || !form.echelon || !form.salaryMultiplier}>
-            Save
+            {t('common.save')}
           </Button>
         </DialogActions>
       </Dialog>

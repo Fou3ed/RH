@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DownloadIcon from '@mui/icons-material/Download';
 import { reportService } from '@/services/report.service';
@@ -32,12 +33,6 @@ import {
   type AttendanceStatus,
 } from '@/types/attendance';
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
 interface EditState {
   day: number;
   date: string;
@@ -46,8 +41,11 @@ interface EditState {
 
 export default function AttendanceCalendar() {
   const { hasPermission } = useAuth();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const canEdit = hasPermission('attendance.record');
+  const weekdays = t('common.weekdays', { returnObjects: true }) as string[];
+  const months = t('common.months', { returnObjects: true }) as string[];
 
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -126,18 +124,18 @@ export default function AttendanceCalendar() {
     <Stack spacing={3}>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Typography variant="h1" sx={{ fontSize: '1.75rem' }}>
-          Attendance
+          {t('attendance.title')}
         </Typography>
         <Stack direction="row" spacing={1}>
           {hasPermission('report.export') && (
             <Button variant="outlined" startIcon={<DownloadIcon />}
               onClick={() => reportService.attendanceExcel(year, month)}>
-              Export month
+              {t('attendance.exportMonth')}
             </Button>
           )}
           {hasPermission('attendance.import') && (
             <Button component={RouterLink} to="/attendance/import" variant="outlined" startIcon={<UploadFileIcon />}>
-              Import
+              {t('attendance.import')}
             </Button>
           )}
         </Stack>
@@ -147,13 +145,13 @@ export default function AttendanceCalendar() {
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
           <TextField
             select
-            label="Employee"
+            label={t('attendance.employee')}
             value={employeeId}
             onChange={(e) => setEmployeeId(e.target.value === '' ? '' : Number(e.target.value))}
             size="small"
             sx={{ minWidth: 260 }}
           >
-            <MenuItem value="">Select an employee…</MenuItem>
+            <MenuItem value="">{t('attendance.selectEmployee')}</MenuItem>
             {employeesPage?.data.map((emp) => (
               <MenuItem key={emp.id} value={emp.id}>
                 {emp.employeeId} — {emp.fullName}
@@ -168,7 +166,7 @@ export default function AttendanceCalendar() {
               <ChevronLeftIcon />
             </IconButton>
             <Typography sx={{ minWidth: 150, textAlign: 'center' }}>
-              {MONTHS[month - 1]} {year}
+              {months[month - 1]} {year}
             </Typography>
             <IconButton onClick={() => shiftMonth(1)}>
               <ChevronRightIcon />
@@ -179,25 +177,25 @@ export default function AttendanceCalendar() {
 
       {summary && (
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-          <Chip color="success" label={`Present: ${summary.presentDays}`} />
-          <Chip color="warning" label={`Half-days: ${summary.halfDays}`} />
-          <Chip color="error" label={`Absent: ${summary.absentDays}`} />
-          <Chip color="info" label={`Leave: ${summary.leaveDays}`} />
-          <Chip label={`Days worked: ${summary.daysWorked}`} />
-          <Chip label={`Rate: ${(summary.attendanceRate * 100).toFixed(1)}%`} />
+          <Chip color="success" label={t('attendance.present', { count: summary.presentDays })} />
+          <Chip color="warning" label={t('attendance.halfDays', { count: summary.halfDays })} />
+          <Chip color="error" label={t('attendance.absent', { count: summary.absentDays })} />
+          <Chip color="info" label={t('attendance.leave', { count: summary.leaveDays })} />
+          <Chip label={t('attendance.daysWorked', { count: summary.daysWorked })} />
+          <Chip label={t('attendance.rate', { value: (summary.attendanceRate * 100).toFixed(1) })} />
         </Stack>
       )}
 
       {employeeId === '' ? (
         <Paper sx={{ p: 4 }}>
           <Typography color="text.secondary" align="center">
-            Select an employee to view their attendance calendar.
+            {t('attendance.selectToView')}
           </Typography>
         </Paper>
       ) : (
         <Paper sx={{ p: 2 }}>
           <Grid container columns={7} spacing={1}>
-            {WEEKDAYS.map((d) => (
+            {weekdays.map((d) => (
               <Grid item xs={1} key={d}>
                 <Typography variant="caption" color="text.secondary" align="center" display="block">
                   {d}
@@ -229,7 +227,7 @@ export default function AttendanceCalendar() {
                       {day}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {rec ? rec.attendanceStatus.replace('_', ' ').toLowerCase() : ''}
+                      {rec ? t(`attendance.st.${rec.attendanceStatus}`, { defaultValue: rec.attendanceStatus }) : ''}
                     </Typography>
                   </Box>
                 </Grid>
@@ -240,24 +238,24 @@ export default function AttendanceCalendar() {
       )}
 
       <Dialog open={Boolean(edit)} onClose={() => setEdit(null)} fullWidth maxWidth="xs">
-        <DialogTitle>Attendance — {edit?.date}</DialogTitle>
+        <DialogTitle>{t('attendance.dialogTitle', { date: edit?.date })}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
               select
-              label="Status"
+              label={t('attendance.statusLabel')}
               value={status}
               onChange={(e) => setStatus(e.target.value as AttendanceStatus)}
               fullWidth
             >
               {ATTENDANCE_STATUSES.map((s) => (
                 <MenuItem key={s} value={s}>
-                  {s.replace('_', ' ')}
+                  {t(`attendance.st.${s}`, { defaultValue: s })}
                 </MenuItem>
               ))}
             </TextField>
             <TextField
-              label="Hours worked"
+              label={t('attendance.hoursWorked')}
               type="number"
               value={hours}
               onChange={(e) => setHours(e.target.value)}
@@ -269,12 +267,12 @@ export default function AttendanceCalendar() {
         <DialogActions>
           {edit?.existing && (
             <Button color="error" onClick={() => remove.mutate(edit.existing!.id)} sx={{ mr: 'auto' }}>
-              Delete
+              {t('common.delete')}
             </Button>
           )}
-          <Button onClick={() => setEdit(null)}>Cancel</Button>
+          <Button onClick={() => setEdit(null)}>{t('common.cancel')}</Button>
           <Button variant="contained" onClick={() => save.mutate()} disabled={save.isPending}>
-            Save
+            {t('common.save')}
           </Button>
         </DialogActions>
       </Dialog>

@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
     "composite": true,
+    // Redirect emit away from the source dir so `tsc -b` never drops a
+    // vite.config.js next to vite.config.ts (which Vite would load instead).
+    "outDir": "./node_modules/.tmp/tsnode",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsnode/tsconfig.node.tsbuildinfo",
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
